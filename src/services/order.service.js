@@ -1551,6 +1551,7 @@ class OrderService {
               id: true,
               productName: true,
               sku: true,
+              productImage: true,
               quantity: true,
               finalItemAmount: true,
             },

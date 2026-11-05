@@ -307,6 +307,26 @@ export class AdminAnalyticsService {
       .sort((a, b) => b.totalRevenue - a.totalRevenue)
       .slice(0, take);
 
+    // Enrich missing images with product primary media if available
+    const missingImgPids = sorted.filter((p) => !p.imageUrl && p.productId).map((p) => p.productId);
+    if (missingImgPids.length > 0) {
+      const medias = await prisma.productMedia.findMany({
+        where: { productId: { in: missingImgPids } },
+        orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
+      });
+      const mediaMap = new Map();
+      for (const m of medias) {
+        if (!mediaMap.has(m.productId)) {
+          mediaMap.set(m.productId, m.secureUrl || m.thumbnailUrl);
+        }
+      }
+      for (const p of sorted) {
+        if (!p.imageUrl && mediaMap.has(p.productId)) {
+          p.imageUrl = mediaMap.get(p.productId);
+        }
+      }
+    }
+
     return sorted.map((p) => ({
       ...p,
       totalRevenue: Number(p.totalRevenue.toFixed(2)),
